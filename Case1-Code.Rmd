@@ -1,0 +1,815 @@
+---
+title: "Case1-Code"
+---
+
+
+
+
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+rm(list=ls(all=T))
+
+```
+
+
+
+### Import Packages
+
+```{r, message = FALSE, warning = FALSE}
+
+library(rgl)
+library(dplyr)
+library(plotly)
+library(readxl)
+library(tidyxl)
+library(pracma)
+library(data.table)
+
+```
+
+
+
+
+### Import Data
+
+```{r, message = FALSE, warning = FALSE}
+
+case1 = fread("D:/Academic/NTHU/NTHU Practicing Statistics/Case1/Case1.csv")
+head(case1,5)
+
+```
+
+
+
+### EDA
+
+```{r, message = FALSE, warning = FALSE}
+
+#par(mfrow = c(4,9))
+
+for ( i in 1:14 ) {
+    plot(case1$scaleX[which(case1$id==i&case1$direction==-1)],case1$`ppResp (Y)`[which(case1$id==i&case1$direction==-1)],xlab="scale_X",ylab="Y",ylim=c(-2,5.5),xlim=c(0,1),main=paste("人編號 -",i,"左腳"))
+    plot(case1$scaleX[which(case1$id==i&case1$direction==1)],case1$`ppResp (Y)`[which(case1$id==i&case1$direction==1)],xlab="scale_X",ylab="Y",ylim=c(-2,5.5),xlim=c(0,1),main=paste("人編號 -",i,"右腳"))
+}
+for ( i in 15:17 ) {
+    plot(case1$scaleX[which(case1$id==i&case1$foot==-1)],case1$`ppResp (Y)`[which(case1$id==i&case1$foot==-1)],xlab="scale_X",ylab="Y",ylim=c(-2,5.5),xlim=c(0,1),main=paste("人編號 -",i,"好腳"))
+    plot(case1$scaleX[which(case1$id==i&case1$foot==1)],case1$`ppResp (Y)`[which(case1$id==i&case1$foot==1)],xlab="scale_X",ylab="Y",ylim=c(-2,5.5),xlim=c(0,1),main=paste("人編號 -",i,"壞腳"))
+}
+
+
+
+for(i in 1:17){
+    tochange = data[data$id==i]
+    min = median(tochange$AntagonistBG..X.)
+    max = max(tochange$AntagonistBG..X.)
+    tochange$AntagonistBG..X. = tochange$AntagonistBG..X. #-min#- min
+    tochange$AntagonistBG..X. = tochange$AntagonistBG..X. #/(max)#/ (max-min)
+    data[data$id==i]$AntagonistBG..X. = tochange$AntagonistBG..X.
+}
+
+#plot(data$AntagonistBG..X.,data$ppResp..Y.,col=(data$goodfoot0)+1)
+#plot(data[grepl(0,goodfoot0)]$AntagonistBG..X.,data[grepl(0,goodfoot0)]$ppResp..Y.,pch=20)
+#try = data[grepl(0,goodfoot0)]$AntagonistBG..X. + data[grepl(0,goodfoot0)]$ppResp..Y.
+
+source("C:/SHU_YU_LIN/shuyufunctions.R")
+
+par(mfrow=c(3,6))
+#gridlength = length(seq(0,1,0.01))
+#sm = matrix(0,17,gridlength)
+for(i in 1:17){
+    x = data[data$id==i ]$AntagonistBG..X.
+    print(length(x))
+    y = data[data$id==i ]$ppResp..Y.
+    xgrid = seq(0,1,0.01)
+#    h=0.1
+#    fit00 = llrnew(x,y,xgrid,h=h,epkernel,epkernel,epkernel)
+    plot(x,y,xlim=c(0,0.6),xlab='AntagonistBG(mV)',ylab='ppResp(mV)',pch=20,cex.axis=1.5,cex.lab=1.5)
+#    points(xgrid,fit00$m0,col='red',type='l')
+    sm[i,] = fit00$m0
+    title(i)
+}
+
+par(mfrow=c(1,1))
+plot(0,10,xlim=c(0,1),ylim=c(0,3.5),xlab='AntagonistBG(normalized)',ylab='ppResp(mV)')
+title('')
+for(i in 1:17){
+  j=1
+  k=2
+  if(i>14){j=2;k=1}
+  points(seq(0,1,0.01),sm[i,],col=j,type='l',lwd=k)
+  j=1
+  k=2
+}
+m = NULL
+for(i in 1:101){
+  m = c(m,mean(sm[1:15,i])) 
+}
+points(seq(0,1,0.01),m,type='l',lwd=3,col=3)
+
+colnames(data) = c("AntagonistBG..X.","BG","ppM","mrM","ppResp..Y.",
+                   "mrResp","goodfoot0","leftfoot0","id","healthy0","relax0")
+#data$id = as.factor(data$id)
+data = data.table(data)
+for(i in 1:17){
+  tochange = data[data$id==i,]
+  min = min(tochange$AntagonistBG..X.)
+  max = max(tochange$AntagonistBG..X.)
+  tochange$AntagonistBG..X. = tochange$AntagonistBG..X. - min
+  tochange$AntagonistBG..X. = tochange$AntagonistBG..X. / 
+    (max-min)
+  min1 = min(tochange$ppResp..Y.)
+  max1 = max(tochange$ppResp..Y.)
+  tochange$ppResp..Y. = tochange$ppResp..Y.
+  tochange$ppResp..Y. = tochange$ppResp..Y. / (max1)
+  data[data$id==i]$AntagonistBG..X. = tochange$AntagonistBG..X.
+  data[data$id==i]$ppResp..Y. = tochange$ppResp..Y.
+}
+
+par(mfrow=c(3,6))
+gridlength = length(seq(0,1,0.01))
+sm = matrix(0,17,gridlength)
+for(i in 1:17){
+  x = data[data$id==i ]$AntagonistBG..X.
+  print(length(x))
+  y = data[data$id==i ]$ppResp..Y.
+  xgrid = seq(0,1,0.01)
+  h=0.2
+  fit00 = llrnew(x,y,xgrid,h=h,epkernel,epkernel,epkernel)
+  plot(x,y,xlab='AntagonistBG(normalized)',ylab='ppResp(mV)',pch=20)
+  points(xgrid,fit00$m0,col='red',type='l')
+  sm[i,] = fit00$m0
+  title(i)
+}
+
+par(mfrow=c(1,1))
+plot(0,10,xlim=c(0,1),ylim=c(0,1),xlab='AntagonistBG(normalized)',ylab='ppResp(normalized)')
+title('')
+for(i in 1:17){
+  j=1
+  k=2
+  if(i>14){j=2;k=1}
+  points(seq(0,1,0.01),sm[i,],col=j,type='l',lwd=k)
+  j=1
+  k=2
+}
+m = NULL
+for(i in 1:101){
+  m = c(m,mean(sm[1:15,i])) 
+}
+points(seq(0,1,0.01),m,type='l',lwd=3,col=3)
+
+```
+
+
+
+### Analysis
+
+```{r}
+
+summary( lm( `ppResp (Y)`~ scaleX + I(scaleX^2) + direction + foot + stroke + 
+              id2  + id3  + id4  + id5  + id6  + 
+              id7  + id8  + id9  + id10 + id11 + 
+              id12 + id13 + id14 + id16 + id17 +
+              id2 *direction + id3 *direction + id4 *direction + id5 *direction + id6 *direction + 
+              id7 *direction + id8 *direction + id9 *direction + id10*direction + id11*direction + 
+              id12*direction + id13*direction + id14*direction + id16*direction + id17*direction +
+              id2 *foot + id3 *foot + id4 *foot + id5 *foot + id6 *foot + 
+              id7 *foot + id8 *foot + id9 *foot + id10*foot + id11*foot + 
+              id12*foot + id13*foot + id14*foot + id16*foot + id17*foot +
+              id2 *scaleX + id3 *scaleX + id4 *scaleX + id5 *scaleX + id6 *scaleX + 
+              id7 *scaleX + id8 *scaleX + id9 *scaleX + id10*scaleX + id11*scaleX + 
+              id12*scaleX + id13*scaleX + id14*scaleX + id16*scaleX + id17*scaleX +
+              id2 *I(scaleX^2) + id3 *I(scaleX^2) + id4 *I(scaleX^2) + id5 *I(scaleX^2) + id6 *I(scaleX^2) + 
+              id7 *I(scaleX^2) + id8 *I(scaleX^2) + id9 *I(scaleX^2) + id10*I(scaleX^2) + id11*I(scaleX^2) + 
+              id12*I(scaleX^2) + id13*I(scaleX^2) + id14*I(scaleX^2) + id16*I(scaleX^2) + id17*I(scaleX^2) +
+              scaleX*direction + scaleX*foot + scaleX*stroke + I(scaleX^2)*direction + I(scaleX^2)*foot + I(scaleX^2)*stroke , data = case1))
+
+```
+
+```{r}
+
+model = ( lm( `ppResp (Y)`~ scaleX + I(scaleX^2) + direction + foot + stroke + 
+              id2  + id3  + id4  + id5  + id6  + 
+              id7  + id8  + id9  + id10 + id11 + 
+              id12 + id13 + id14 + id16 + id17 +
+              id2 *direction + id3 *direction + id4 *direction + id5 *direction + id6 *direction + 
+              id7 *direction + id8 *direction + id9 *direction + id10*direction + id11*direction + 
+              id12*direction + id13*direction + id14*direction + id16*direction + id17*direction +
+              id2 *foot + id3 *foot + id4 *foot + id5 *foot + id6 *foot + 
+              id7 *foot + id8 *foot + id9 *foot + id10*foot + id11*foot + 
+              id12*foot + id13*foot + id14*foot + id16*foot + id17*foot +
+              id2 *scaleX + id3 *scaleX + id4 *scaleX + id5 *scaleX + id6 *scaleX + 
+              id7 *scaleX + id8 *scaleX + id9 *scaleX + id10*scaleX + id11*scaleX + 
+              id12*scaleX + id13*scaleX + id14*scaleX + id16*scaleX + id17*scaleX +
+              id2 *I(scaleX^2) + id3 *I(scaleX^2) + id4 *I(scaleX^2) + id5 *I(scaleX^2) + id6 *I(scaleX^2) + 
+              id7 *I(scaleX^2) + id8 *I(scaleX^2) + id9 *I(scaleX^2) + id10*I(scaleX^2) + id11*I(scaleX^2) + 
+              id12*I(scaleX^2) + id13*I(scaleX^2) + id14*I(scaleX^2) + id16*I(scaleX^2) + id17*I(scaleX^2) +
+              scaleX*direction + scaleX*foot + scaleX*stroke + I(scaleX^2)*direction + I(scaleX^2)*foot + I(scaleX^2)*stroke , data = case1))
+
+```
+
+
+##### sd of "id" , "scaleX * id" , "scaleX^2 * id" for paretic are smaller
+
+```{r}
+
+summary(model)$coefficient[ 7:21,2]
+summary(model)$coefficient[37:51,2]
+summary(model)$coefficient[52:66,2]
+
+plot( summary(model)$coefficient[ 7:21,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "id" )
+plot( summary(model)$coefficient[37:51,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "scaleX * id" )
+plot( summary(model)$coefficient[52:66,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "scaleX^2 * id" )
+
+plot( summary(model)$coefficient[ 7:21,2],summary(model)$coefficient[37:51,2] , pch = 19 , col = c(rep(1,13),c(2,4)) , xlab = "id" , ylab = "scaleX * id" )
+plot( summary(model)$coefficient[ 7:21,2],summary(model)$coefficient[52:66,2] , pch = 19 , col = c(rep(1,13),c(2,4)) , xlab = "id" , ylab = "scaleX^2 * id" )
+plot( summary(model)$coefficient[37:51,2],summary(model)$coefficient[52:66,2] , pch = 19 , col = c(rep(1,13),c(2,4)) , xlab = "scaleX * id" , ylab = "scaleX^2 * id" )
+
+```
+
+
+##### functions for each foot
+
+```{r}
+
+coef = model$coefficients
+
+para = matrix(NA,34,3)
+row.names(para) = c("id01 L","id01 R","id02 L","id02 R","id03 L","id03 R","id04 L","id04 R","id05 L","id05 R","id06 L","id06 R","id07 L","id07 R",
+                    "id08 L","id08 R","id09 L","id09 R","id10 L","id10 R","id11 L","id11 R","id12 L","id12 R","id13 L","id13 R","id14 L","id14 R",
+                    "id15 G","id15 B","id16 G","id16 B","id17 G","id17 B" )
+colnames (para) = c("Intercept","X","X^2")
+
+
+
+para[1,1] = coef[1] - coef[4]
+para[1,2] = coef[2] - coef[82]
+para[1,3] = coef[3] - coef[85]
+
+para[2,1] = coef[1] + coef[4]
+para[2,2] = coef[2] + coef[82]
+para[2,3] = coef[3] + coef[85]
+
+for ( i in 2:14 ) {
+  para[(2*i-1),1] = coef[1] - coef[4]  + coef[5+i]  - coef[20+i]
+  para[(2*i-1),2] = coef[2] - coef[82] + coef[50+i]
+  para[(2*i-1),3] = coef[3] - coef[85] + coef[65+i]
+
+  para[(2*i)  ,1] = coef[1] + coef[4]  + coef[5+i]  + coef[20+i]
+  para[(2*i)  ,2] = coef[2] + coef[82] + coef[50+i]
+  para[(2*i)  ,3] = coef[3] + coef[85] + coef[65+i]
+}
+
+para[29,1] = coef[1] + coef[6]  - coef[5]
+para[29,2] = coef[2] + coef[84] - coef[83]
+para[29,3] = coef[3] + coef[87] - coef[86]
+
+para[30,1] = coef[1] + coef[6]  + coef[5]
+para[30,2] = coef[2] + coef[84] + coef[83]
+para[30,3] = coef[3] + coef[87] + coef[86]
+
+for ( i in 16:17 ) {
+  para[(2*i-1),1] = coef[1] + coef[6]  - coef[5]  + coef[4+i]  - coef[34+i]
+  para[(2*i-1),2] = coef[2] + coef[84] - coef[83] + coef[49+i]
+  para[(2*i-1),3] = coef[3] + coef[87] - coef[86] + coef[64+i]
+
+  para[(2*i)  ,1] = coef[1] + coef[6]  + coef[5]  + coef[4+i]  + coef[34+i]
+  para[(2*i)  ,2] = coef[2] + coef[84] + coef[83] + coef[49+i]
+  para[(2*i)  ,3] = coef[3] + coef[87] + coef[86] + coef[64+i]
+}
+
+para
+
+pairs( para , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) )
+
+```
+
+
+##### interaction 3 model
+
+```{r}
+
+summary( lm( `ppResp (Y)`~ scaleX + I(scaleX^2) + direction + foot + stroke + 
+              id2  + id3  + id4  + id5  + id6  + 
+              id7  + id8  + id9  + id10 + id11 + 
+              id12 + id13 + id14 + id16 + id17 +
+              id2 *direction + id3 *direction + id4 *direction + id5 *direction + id6 *direction + 
+              id7 *direction + id8 *direction + id9 *direction + id10*direction + id11*direction + 
+              id12*direction + id13*direction + id14*direction + id16*foot      + id17*foot      +
+              id2 *scaleX*direction + id3 *scaleX*direction + id4 *scaleX*direction + id5 *scaleX*direction + id6 *scaleX*direction + 
+              id7 *scaleX*direction + id8 *scaleX*direction + id9 *scaleX*direction + id10*scaleX*direction + id11*scaleX*direction + 
+              id12*scaleX*direction + id13*scaleX*direction + id14*scaleX*direction + id16*scaleX*foot      + id17*scaleX*foot      +
+              id2 *scaleX + id3 *scaleX + id4 *scaleX + id5 *scaleX + id6 *scaleX + 
+              id7 *scaleX + id8 *scaleX + id9 *scaleX + id10*scaleX + id11*scaleX + 
+              id12*scaleX + id13*scaleX + id14*scaleX + id16*scaleX + id17*scaleX +
+              id2 *I(scaleX^2) + id3 *I(scaleX^2) + id4 *I(scaleX^2) + id5 *I(scaleX^2) + id6 *I(scaleX^2) + 
+              id7 *I(scaleX^2) + id8 *I(scaleX^2) + id9 *I(scaleX^2) + id10*I(scaleX^2) + id11*I(scaleX^2) + 
+              id12*I(scaleX^2) + id13*I(scaleX^2) + id14*I(scaleX^2) + id16*I(scaleX^2) + id17*I(scaleX^2) + 
+              id2 *I(scaleX^2)*direction + id3 *I(scaleX^2)*direction + id4 *I(scaleX^2)*direction + id5 *I(scaleX^2)*direction + id6 *I(scaleX^2)*direction + 
+              id7 *I(scaleX^2)*direction + id8 *I(scaleX^2)*direction + id9 *I(scaleX^2)*direction + id10*I(scaleX^2)*direction + id11*I(scaleX^2)*direction + 
+              id12*I(scaleX^2)*direction + id13*I(scaleX^2)*direction + id14*I(scaleX^2)*direction + id16*I(scaleX^2)*foot      + id17*I(scaleX^2)*foot      +
+              scaleX*direction + scaleX*foot + scaleX*stroke + I(scaleX^2)*direction + I(scaleX^2)*foot + I(scaleX^2)*stroke , data = case1))
+
+```
+
+```{r}
+
+summary( lm( `ppResp (Y)`~ -sqrt(scaleX) + I(-sqrt(scaleX^2))+ direction + foot + stroke + 
+              id2  + id3  + id4  + id5  + id6  + 
+              id7  + id8  + id9  + id10 + id11 + 
+              id12 + id13 + id14 + id16 + id17 +
+              id2 *direction + id3 *direction + id4 *direction + id5 *direction + id6 *direction + 
+              id7 *direction + id8 *direction + id9 *direction + id10*direction + id11*direction + 
+              id12*direction + id13*direction + id14*direction + id16*foot      + id17*foot      +
+              id2 *scaleX*direction + id3 *scaleX*direction + id4 *scaleX*direction + id5 *scaleX*direction + id6 *scaleX*direction + 
+              id7 *scaleX*direction + id8 *scaleX*direction + id9 *scaleX*direction + id10*scaleX*direction + id11*scaleX*direction + 
+              id12*scaleX*direction + id13*scaleX*direction + id14*scaleX*direction + id16*scaleX*foot      + id17*scaleX*foot      +
+              id2 *scaleX + id3 *scaleX + id4 *scaleX + id5 *scaleX + id6 *scaleX + 
+              id7 *scaleX + id8 *scaleX + id9 *scaleX + id10*scaleX + id11*scaleX + 
+              id12*scaleX + id13*scaleX + id14*scaleX + id16*scaleX + id17*scaleX +
+              id2 *I(scaleX^2) + id3 *I(scaleX^2) + id4 *I(scaleX^2) + id5 *I(scaleX^2) + id6 *I(scaleX^2) + 
+              id7 *I(scaleX^2) + id8 *I(scaleX^2) + id9 *I(scaleX^2) + id10*I(scaleX^2) + id11*I(scaleX^2) + 
+              id12*I(scaleX^2) + id13*I(scaleX^2) + id14*I(scaleX^2) + id16*I(scaleX^2) + id17*I(scaleX^2) + 
+              id2 *I(scaleX^2)*direction + id3 *I(scaleX^2)*direction + id4 *I(scaleX^2)*direction + id5 *I(scaleX^2)*direction + id6 *I(scaleX^2)*direction + 
+              id7 *I(scaleX^2)*direction + id8 *I(scaleX^2)*direction + id9 *I(scaleX^2)*direction + id10*I(scaleX^2)*direction + id11*I(scaleX^2)*direction + 
+              id12*I(scaleX^2)*direction + id13*I(scaleX^2)*direction + id14*I(scaleX^2)*direction + id16*I(scaleX^2)*foot      + id17*I(scaleX^2)*foot      +
+              scaleX*direction + scaleX*foot + scaleX*stroke + I(scaleX^2)*direction + I(scaleX^2)*foot + I(scaleX^2)*stroke , data = case1))
+
+```
+
+```{r}
+
+model1 = ( lm( (`ppResp (Y)`)~scaleX + I(scaleX^2) + direction + foot + stroke + 
+              id2  + id3  + id4  + id5  + id6  + 
+              id7  + id8  + id9  + id10 + id11 + 
+              id12 + id13 + id14 + id16 + id17 +
+              id2 *direction + id3 *direction + id4 *direction + id5 *direction + id6 *direction + 
+              id7 *direction + id8 *direction + id9 *direction + id10*direction + id11*direction + 
+              id12*direction + id13*direction + id14*direction + id16*foot      + id17*foot      +
+              id2 *scaleX*direction + id3 *scaleX*direction + id4 *scaleX*direction + id5 *scaleX*direction + id6 *scaleX*direction + 
+              id7 *scaleX*direction + id8 *scaleX*direction + id9 *scaleX*direction + id10*scaleX*direction + id11*scaleX*direction + 
+              id12*scaleX*direction + id13*scaleX*direction + id14*scaleX*direction + id16*scaleX*foot      + id17*scaleX*foot      +
+              id2 *scaleX + id3 *scaleX + id4 *scaleX + id5 *scaleX + id6 *scaleX + 
+              id7 *scaleX + id8 *scaleX + id9 *scaleX + id10*scaleX + id11*scaleX + 
+              id12*scaleX + id13*scaleX + id14*scaleX + id16*scaleX + id17*scaleX +
+              id2 *I(scaleX^2) + id3 *I(scaleX^2) + id4 *I(scaleX^2) + id5 *I(scaleX^2) + id6 *I(scaleX^2) + 
+              id7 *I(scaleX^2) + id8 *I(scaleX^2) + id9 *I(scaleX^2) + id10*I(scaleX^2) + id11*I(scaleX^2) + 
+              id12*I(scaleX^2) + id13*I(scaleX^2) + id14*I(scaleX^2) + id16*I(scaleX^2) + id17*I(scaleX^2) + 
+              id2 *I(scaleX^2)*direction + id3 *I(scaleX^2)*direction + id4 *I(scaleX^2)*direction + id5 *I(scaleX^2)*direction + id6 *I(scaleX^2)*direction + 
+              id7 *I(scaleX^2)*direction + id8 *I(scaleX^2)*direction + id9 *I(scaleX^2)*direction + id10*I(scaleX^2)*direction + id11*I(scaleX^2)*direction + 
+              id12*I(scaleX^2)*direction + id13*I(scaleX^2)*direction + id14*I(scaleX^2)*direction + id16*I(scaleX^2)*foot + id17*I(scaleX^2)*foot +
+              scaleX*direction + scaleX*foot + scaleX*stroke + I(scaleX^2)*direction + I(scaleX^2)*foot + I(scaleX^2)*stroke , data = case1))
+
+```
+
+
+##### sd for paretic are smaller
+
+```{r}
+
+## id
+summary(model1)$coefficient[ 7:21,1]
+summary(model1)$coefficient[ 7:21,2]
+plot( summary(model1)$coefficient[ 7:21,1] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "para" , main = "id" )
+plot( summary(model1)$coefficient[ 7:21,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "id" )
+
+## direction*id / foot*id
+summary(model1)$coefficient[22:36,1]
+summary(model1)$coefficient[22:36,2]
+plot( summary(model1)$coefficient[22:36,1] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "para" , main = "direction*id / foot*id" )
+plot( summary(model1)$coefficient[22:36,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "direction*id / foot*id" )
+
+## scaleX*id
+summary(model1)$coefficient[c(37,39:51,53),1]
+summary(model1)$coefficient[c(37,39:51,53),2]
+plot( summary(model1)$coefficient[c(37,39:51,53),1] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "para" , main = "scaleX*id" )
+plot( summary(model1)$coefficient[c(37,39:51,53),2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "scaleX*id" )
+
+## scaleX^2*id
+summary(model1)$coefficient[54:68,1]
+summary(model1)$coefficient[54:68,2]
+plot( summary(model1)$coefficient[54:68,1] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "para" , main = "scaleX^2*id" )
+plot( summary(model1)$coefficient[54:68,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "scaleX^2*id" )
+
+## scaleX*direction*id / scaleX*foot*id
+summary(model1)$coefficient[73:87,1]
+summary(model1)$coefficient[73:87,2]
+plot( summary(model1)$coefficient[73:87,1] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "para" , main = "scaleX*direction*id / scaleX*foot*id" )
+plot( summary(model1)$coefficient[73:87,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "scaleX*direction*id / scaleX*foot*id" )
+
+## scaleX^2*direction*id / scaleX^2*foot*id
+summary(model1)$coefficient[88:102,1]
+summary(model1)$coefficient[88:102,2]
+plot( summary(model1)$coefficient[88:102,1] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "para" , main = "scaleX^2*direction*id / scaleX^2*foot*id" )
+plot( summary(model1)$coefficient[88:102,2] , pch = 19 , col = c(rep(1,13),rep(2,2)) , ylab = "sd" , main = "scaleX^2*direction*id / scaleX^2*foot*id" )
+
+```
+
+
+##### functions for each foot
+
+```{r}
+
+coef1 = model1$coefficients
+
+para1 = matrix(NA,34,3)
+row.names(para1) = c("id01 L","id01 R","id02 L","id02 R","id03 L","id03 R","id04 L","id04 R","id05 L","id05 R","id06 L","id06 R","id07 L","id07 R",
+                    "id08 L","id08 R","id09 L","id09 R","id10 L","id10 R","id11 L","id11 R","id12 L","id12 R","id13 L","id13 R","id14 L","id14 R",
+                    "id15 G","id15 B","id16 G","id16 B","id17 G","id17 B" )
+colnames (para1) = c("Intercept","X","X^2")
+
+
+
+c1 = c(37,39:50)
+c2 = c(51,53)
+
+para1[1,1] = coef1[1] - coef1[4]  + sum(coef1[7:19])   - sum(coef1[22:34])
+para1[1,2] = coef1[2] - coef1[38] + sum(coef1[c1])     - sum(coef1[73:85])
+para1[1,3] = coef1[3] - coef1[69] + sum(coef1[54:66])  - sum(coef1[88:100])
+
+para1[2,1] = coef1[1] + coef1[4]  + sum(coef1[7:19])   + sum(coef1[22:34])
+para1[2,2] = coef1[2] + coef1[38] + sum(coef1[c1])     + sum(coef1[73:85])
+para1[2,3] = coef1[3] + coef1[69] + sum(coef1[54:66])  + sum(coef1[88:100])
+
+for ( i in 2:14 ) {
+  para1[(2*i-1),1] = coef1[1] - coef1[4]  - coef1[5+i]     + coef1[20+i]
+  para1[(2*i-1),2] = coef1[2] - coef1[38] - coef1[c1[i-1]] + coef1[71+i]
+  para1[(2*i-1),3] = coef1[3] - coef1[69] - coef1[52+i]    + coef1[86+i]
+
+  para1[(2*i)  ,1] = coef1[1] + coef1[4]  - coef1[5+i]     - coef1[20+i]
+  para1[(2*i)  ,2] = coef1[2] + coef1[38] - coef1[c1[i-1]] - coef1[71+i]
+  para1[(2*i)  ,3] = coef1[3] + coef1[69] - coef1[52+i]    - coef1[86+i]
+}
+
+para1[29,1] = coef1[1] + coef1[6]  - coef1[5]  + sum(coef1[20:21]) - sum(coef1[35:36])
+para1[29,2] = coef1[2] + coef1[71] - coef1[52] + sum(coef1[c2])    - sum(coef1[86:87])
+para1[29,3] = coef1[3] + coef1[72] - coef1[70] + sum(coef1[67:68]) - sum(coef1[101:102])
+
+para1[30,1] = coef1[1] + coef1[6]  + coef1[5]  + sum(coef1[20:21]) + sum(coef1[35:36])
+para1[30,2] = coef1[2] + coef1[71] + coef1[52] + sum(coef1[c2])    + sum(coef1[86:87])
+para1[30,3] = coef1[3] + coef1[72] + coef1[70] + sum(coef1[67:68]) + sum(coef1[101:102])
+
+for ( i in 16:17 ) {
+  para1[(2*i-1),1] = coef1[1] + coef1[6]  - coef1[5]  - coef1[4+i]      + coef1[19+i]
+  para1[(2*i-1),2] = coef1[2] + coef1[71] - coef1[52] - coef1[c2[i-15]] + coef1[70+i]
+  para1[(2*i-1),3] = coef1[3] + coef1[72] - coef1[70] - coef1[51+i]     + coef1[85+i]
+
+  para1[(2*i)  ,1] = coef1[1] + coef1[6]  + coef1[5]  - coef1[4+i]      - coef1[19+i]
+  para1[(2*i)  ,2] = coef1[2] + coef1[71] + coef1[52] - coef1[c2[i-15]] - coef1[70+i]
+  para1[(2*i)  ,3] = coef1[3] + coef1[72] + coef1[70] - coef1[51+i]     - coef1[85+i]
+}
+
+para1
+
+plot( para1[,1] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "Intercept" )
+abline( h = 1 , col = "gray" )
+plot( para1[,2] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "X" )
+abline( h = -4 , col = "gray" )
+plot( para1[,3] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "X^2" )
+abline( h = 3 , col = "gray" )
+
+pairs( para1 , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) )
+
+#plot3d( para1[,1] , para1[,2] , para1[,3] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , xlab = "Intercept" , ylab = "X" , zlab = "X^2")
+
+```
+
+```{r}
+
+x = seq(0,1,0.001)
+
+index = c(-1,1)
+
+for (i in 1:14) {
+  for (j in 1:2) {
+    plt1 <- plot_ly ( data = case1[ `id` == i & `direction` == index[j] ] ) %>%
+    add_trace( x = ~`scaleX` , y = ~`ppResp (Y)` , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'navy') , name = 'x') %>%
+    add_trace( x = ~ x , y = ~ para1[(2*i+j-2),1] + para1[(2*i+j-2),2]*x + para1[(2*i+j-2),3]*x^2 , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'red') , name = 'x' ) %>%
+    print()
+  }
+}
+
+for (i in 15:17) {
+  for (j in 1:2) {
+    plt1 <- plot_ly ( data = case1[ `id` == i & `foot` == index[j] ] ) %>%
+    add_trace( x = ~`scaleX` , y = ~`ppResp (Y)` , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'red') , name = 'x') %>%
+        add_trace( x = ~ x , y = ~ para1[(2*i+j-2),1] + para1[(2*i+j-2),2]*x + para1[(2*i+j-2),3]*x^2 , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'navy') , name = 'x' ) %>%
+    print()
+  }
+}
+
+```
+
+
+##### Problem 3 
+
+```{r}
+
+plot( para1[,3] - para1[,2] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "" )
+abline( h = 6.5 , col = "gray" )
+abline( h = 3.5 , col = "pink" )
+
+```
+
+
+##### log(Y) ~ X
+
+```{r}
+
+summary( lm( log(`ppResp (Y)`)~ scaleX + I(scaleX^2) + direction + foot + stroke + 
+              id2  + id3  + id4  + id5  + id6  + 
+              id7  + id8  + id9  + id10 + id11 + 
+              id12 + id13 + id14 + id16 + id17 +
+              id2 *direction + id3 *direction + id4 *direction + id5 *direction + id6 *direction + 
+              id7 *direction + id8 *direction + id9 *direction + id10*direction + id11*direction + 
+              id12*direction + id13*direction + id14*direction + id16*foot      + id17*foot      +
+              id2 *scaleX*direction + id3 *scaleX*direction + id4 *scaleX*direction + id5 *scaleX*direction + id6 *scaleX*direction + 
+              id7 *scaleX*direction + id8 *scaleX*direction + id9 *scaleX*direction + id10*scaleX*direction + id11*scaleX*direction + 
+              id12*scaleX*direction + id13*scaleX*direction + id14*scaleX*direction + id16*scaleX*foot      + id17*scaleX*foot      +
+              id2 *scaleX + id3 *scaleX + id4 *scaleX + id5 *scaleX + id6 *scaleX + 
+              id7 *scaleX + id8 *scaleX + id9 *scaleX + id10*scaleX + id11*scaleX + 
+              id12*scaleX + id13*scaleX + id14*scaleX + id16*scaleX + id17*scaleX +
+              id2 *I(scaleX^2) + id3 *I(scaleX^2) + id4 *I(scaleX^2) + id5 *I(scaleX^2) + id6 *I(scaleX^2) + 
+              id7 *I(scaleX^2) + id8 *I(scaleX^2) + id9 *I(scaleX^2) + id10*I(scaleX^2) + id11*I(scaleX^2) + 
+              id12*I(scaleX^2) + id13*I(scaleX^2) + id14*I(scaleX^2) + id16*I(scaleX^2) + id17*I(scaleX^2) + 
+              id2 *I(scaleX^2)*direction + id3 *I(scaleX^2)*direction + id4 *I(scaleX^2)*direction + id5 *I(scaleX^2)*direction + id6 *I(scaleX^2)*direction + 
+              id7 *I(scaleX^2)*direction + id8 *I(scaleX^2)*direction + id9 *I(scaleX^2)*direction + id10*I(scaleX^2)*direction + id11*I(scaleX^2)*direction + 
+              id12*I(scaleX^2)*direction + id13*I(scaleX^2)*direction + id14*I(scaleX^2)*direction + id16*I(scaleX^2)*foot      + id17*I(scaleX^2)*foot      +
+              scaleX*direction + scaleX*foot + scaleX*stroke + I(scaleX^2)*direction + I(scaleX^2)*foot + I(scaleX^2)*stroke , data = case1 , weights = scaleX ))
+
+```
+
+```{r}
+
+model2 = ( lm( log(`ppResp (Y)`)~ scaleX + I(scaleX^2) + direction + foot + stroke + 
+              id2  + id3  + id4  + id5  + id6  + 
+              id7  + id8  + id9  + id10 + id11 + 
+              id12 + id13 + id14 + id16 + id17 +
+              id2 *direction + id3 *direction + id4 *direction + id5 *direction + id6 *direction + 
+              id7 *direction + id8 *direction + id9 *direction + id10*direction + id11*direction + 
+              id12*direction + id13*direction + id14*direction + id16*foot      + id17*foot      +
+              id2 *scaleX*direction + id3 *scaleX*direction + id4 *scaleX*direction + id5 *scaleX*direction + id6 *scaleX*direction + 
+              id7 *scaleX*direction + id8 *scaleX*direction + id9 *scaleX*direction + id10*scaleX*direction + id11*scaleX*direction + 
+              id12*scaleX*direction + id13*scaleX*direction + id14*scaleX*direction + id16*scaleX*foot      + id17*scaleX*foot      +
+              id2 *scaleX + id3 *scaleX + id4 *scaleX + id5 *scaleX + id6 *scaleX + 
+              id7 *scaleX + id8 *scaleX + id9 *scaleX + id10*scaleX + id11*scaleX + 
+              id12*scaleX + id13*scaleX + id14*scaleX + id16*scaleX + id17*scaleX +
+              id2 *I(scaleX^2) + id3 *I(scaleX^2) + id4 *I(scaleX^2) + id5 *I(scaleX^2) + id6 *I(scaleX^2) + 
+              id7 *I(scaleX^2) + id8 *I(scaleX^2) + id9 *I(scaleX^2) + id10*I(scaleX^2) + id11*I(scaleX^2) + 
+              id12*I(scaleX^2) + id13*I(scaleX^2) + id14*I(scaleX^2) + id16*I(scaleX^2) + id17*I(scaleX^2) + 
+              id2 *I(scaleX^2)*direction + id3 *I(scaleX^2)*direction + id4 *I(scaleX^2)*direction + id5 *I(scaleX^2)*direction + id6 *I(scaleX^2)*direction + 
+              id7 *I(scaleX^2)*direction + id8 *I(scaleX^2)*direction + id9 *I(scaleX^2)*direction + id10*I(scaleX^2)*direction + id11*I(scaleX^2)*direction + 
+              id12*I(scaleX^2)*direction + id13*I(scaleX^2)*direction + id14*I(scaleX^2)*direction + id16*I(scaleX^2)*foot + id17*I(scaleX^2)*foot +
+              scaleX*direction + scaleX*foot + scaleX*stroke + I(scaleX^2)*direction + I(scaleX^2)*foot + I(scaleX^2)*stroke , data = case1 , weights = scaleX ))
+
+```
+
+```{r}
+
+coef2 = model2$coefficients
+
+para2 = matrix(NA,34,3)
+row.names(para2) = c("id01 L","id01 R","id02 L","id02 R","id03 L","id03 R","id04 L","id04 R","id05 L","id05 R","id06 L","id06 R","id07 L","id07 R",
+                    "id08 L","id08 R","id09 L","id09 R","id10 L","id10 R","id11 L","id11 R","id12 L","id12 R","id13 L","id13 R","id14 L","id14 R",
+                    "id15 G","id15 B","id16 G","id16 B","id17 G","id17 B" )
+colnames (para2) = c("Intercept","X","X^2")
+
+
+
+c1 = c(37,39:50)
+c2 = c(51,53)
+
+para2[1,1] = coef2[1] - coef2[4]  + sum(coef2[7:19])   - sum(coef2[22:34])
+para2[1,2] = coef2[2] - coef2[38] + sum(coef2[c1])     - sum(coef2[73:85])
+para2[1,3] = coef2[3] - coef2[69] + sum(coef2[54:66])  - sum(coef2[88:100])
+
+para2[2,1] = coef2[1] + coef2[4]  + sum(coef2[7:19])   + sum(coef2[22:34])
+para2[2,2] = coef2[2] + coef2[38] + sum(coef2[c1])     + sum(coef2[73:85])
+para2[2,3] = coef2[3] + coef2[69] + sum(coef2[54:66])  + sum(coef2[88:100])
+
+for ( i in 2:14 ) {
+  para2[(2*i-1),1] = coef2[1] - coef2[4]  - coef2[5+i]     + coef2[20+i]
+  para2[(2*i-1),2] = coef2[2] - coef2[38] - coef2[c1[i-1]] + coef2[71+i]
+  para2[(2*i-1),3] = coef2[3] - coef2[69] - coef2[52+i]    + coef2[86+i]
+
+  para2[(2*i)  ,1] = coef2[1] + coef2[4]  - coef2[5+i]     - coef2[20+i]
+  para2[(2*i)  ,2] = coef2[2] + coef2[38] - coef2[c1[i-1]] - coef2[71+i]
+  para2[(2*i)  ,3] = coef2[3] + coef2[69] - coef2[52+i]    - coef2[86+i]
+}
+
+para2[29,1] = coef2[1] + coef2[6]  - coef2[5]  + sum(coef2[20:21]) - sum(coef2[35:36])
+para2[29,2] = coef2[2] + coef2[71] - coef2[52] + sum(coef2[c2])    - sum(coef2[86:87])
+para2[29,3] = coef2[3] + coef2[72] - coef2[70] + sum(coef2[67:68]) - sum(coef2[101:102])
+
+para2[30,1] = coef2[1] + coef2[6]  + coef2[5]  + sum(coef2[20:21]) + sum(coef2[35:36])
+para2[30,2] = coef2[2] + coef2[71] + coef2[52] + sum(coef2[c2])    + sum(coef2[86:87])
+para2[30,3] = coef2[3] + coef2[72] + coef2[70] + sum(coef2[67:68]) + sum(coef2[101:102])
+
+for ( i in 16:17 ) {
+  para2[(2*i-1),1] = coef2[1] + coef2[6]  - coef2[5]  - coef2[4+i]      + coef2[19+i]
+  para2[(2*i-1),2] = coef2[2] + coef2[71] - coef2[52] - coef2[c2[i-15]] + coef2[70+i]
+  para2[(2*i-1),3] = coef2[3] + coef2[72] - coef2[70] - coef2[51+i]     + coef2[85+i]
+
+  para2[(2*i)  ,1] = coef2[1] + coef2[6]  + coef2[5]  - coef2[4+i]      - coef2[19+i]
+  para2[(2*i)  ,2] = coef2[2] + coef2[71] + coef2[52] - coef2[c2[i-15]] - coef2[70+i]
+  para2[(2*i)  ,3] = coef2[3] + coef2[72] + coef2[70] - coef2[51+i]     - coef2[85+i]
+}
+
+para2
+
+plot( para2[,1] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "Intercept" )
+abline( h = 1 , col = "gray" )
+plot( para2[,2] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "X" )
+abline( h = -4 , col = "gray" )
+plot( para2[,3] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "X^2" )
+abline( h = 3 , col = "gray" )
+
+pairs( para2 , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) )
+
+plot3d( para2[,1] , para2[,2] , para2[,3] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , xlab = "Intercept" , ylab = "X" , zlab = "X^2")
+
+```
+
+```{r}
+
+x = seq(0,1,0.001)
+
+index = c(-1,1)
+
+for (i in 1:14) {
+  for (j in 1:2) {
+    plt1 <- plot_ly ( data = case1[ `id` == i & `direction` == index[j] ] ) %>%
+    add_trace( x = ~`scaleX` , y = ~`ppResp (Y)` , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'navy') , name = 'x') %>%
+    add_trace( x = ~ x , y = ~ exp(para2[(2*i+j-2),1] + para2[(2*i+j-2),2]*x + para2[(2*i+j-2),3]*x^2) , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'red') , name = 'x' ) %>%
+    print()
+  }
+}
+
+for (i in 15:17) {
+  for (j in 1:2) {
+    plt1 <- plot_ly ( data = case1[ `id` == i & `foot` == index[j] ] ) %>%
+    add_trace( x = ~`scaleX` , y = ~`ppResp (Y)` , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'red') , name = 'x') %>%
+        add_trace( x = ~ x , y = ~ exp(para2[(2*i+j-2),1] + para2[(2*i+j-2),2]*x + para2[(2*i+j-2),3]*x^2) , type = "scatter" , mode = 'markers' , marker = list(size=4, color = 'navy') , name = 'x' ) %>%
+    print()
+  }
+}
+
+```
+
+
+##### Problem 3 
+
+```{r}
+
+plot( para1[,3] - para1[,2] , pch = 19 , col = c(rep(1,28),rep(c(4,2),3)) , ylab = "" )
+abline( h = 6.5 , col = "gray" )
+abline( h = 3.5 , col = "pink" )
+
+```
+
+
+##### Problem 4
+
+```{r}
+
+ratio = c()
+
+for(i in 1:14){
+  for(j in c(-1,1)){
+    if(j==(-1)){k=1}else{k=2}
+    tochange = case1[(case1$id==i)&(case1$direction==j),]
+    x = tochange$scaleX
+    min_ = min(x)
+    max_ = max(x)
+    y = tochange$`ppResp (Y)`
+    fit = lm(log(y)~x+I(x^2), weights = x)
+    areas = function(x){
+      return(predict(fit,data.frame(x=x)))
+    } 
+    t = seq(min_,max_,0.005)
+    yy = as.numeric(lapply(t,areas))
+    #trapz(t,yy)
+    x1 = c(min_,max_)
+    y1 = c(predict(fit,data.frame(x=min_)),predict(fit,data.frame(x=max_)))
+    y1 = exp(y1)
+    fit2 = lm(y1~x1)
+    yyy = fit2$coefficients[1]+fit2$coefficients[2]*t
+    min__ = min(y)
+    rang = max_-min_
+    print((1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  ))     )
+    ratio[2*i+k-2] = (1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  ))
+  }
+}
+for(i in 15:17){
+  for(j in c(-1,1)){
+    if(j==(-1)){k=1}else{k=2}
+    tochange = case1[(case1$id==i)&(case1$foot==j),]
+    x = tochange$scaleX
+    min_ = min(x)
+    max_ = max(x)
+    y = tochange$`ppResp (Y)`
+    fit = lm(log(y)~x+I(x^2), weights = x)
+    areas = function(x){
+      return(predict(fit,data.frame(x=x)))
+    } 
+    t = seq(min_,max_,0.005)
+    yy = as.numeric(lapply(t,areas))
+    #trapz(t,yy)
+    x1 = c(min_,max_)
+    y1 = c(predict(fit,data.frame(x=min_)),predict(fit,data.frame(x=max_)))
+    y1 = exp(y1)
+    fit2 = lm(y1~x1)
+    yyy = fit2$coefficients[1]+fit2$coefficients[2]*t
+    min__ = min(y)
+    rang = max_-min_
+    print((1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  ))    )
+    ratio[2*i+k-2] = (1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  ))
+  }
+}
+
+```
+
+```{r}
+
+ratio = c()
+range = c()
+
+for(i in 1:14){
+  for(j in c(-1,1)){
+    if(j==(-1)){k=1}else{k=2}
+    tochange = case1[(case1$id==i)&(case1$direction==j),]
+    x = tochange$scaleX
+    min_ = min(x)
+    max_ = max(x)
+    y = tochange$`ppResp (Y)`
+    fit = lm(log(y)~x+I(x^2), weights = x)
+    areas = function(x){
+      return(predict(fit,data.frame(x=x)))
+    } 
+    t = seq(min_,max_,0.005)
+    yy = as.numeric(lapply(t,areas))
+    #trapz(t,yy)
+    x1 = c(min_,max_)
+    y1 = c(predict(fit,data.frame(x=min_)),predict(fit,data.frame(x=max_)))
+    y1 = exp(y1)
+    fit2 = lm(y1~x1)
+    yyy = fit2$coefficients[1]+fit2$coefficients[2]*t
+    min__ = min(y)
+    rang = max_-min_
+    print((1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  ))/(max_ - min_)     )
+    range[2*i+k-2] = max_ - min_
+    ratio[2*i+k-2] = (1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  )) /(max_ - min_)
+  }
+}
+for(i in 15:17){
+  for(j in c(-1,1)){
+    if(j==(-1)){k=1}else{k=2}
+    tochange = case1[(case1$id==i)&(case1$foot==j),]
+    x = tochange$scaleX
+    min_ = min(x)
+    max_ = max(x)
+    y = tochange$`ppResp (Y)`
+    fit = lm(log(y)~x+I(x^2), weights = x)
+    areas = function(x){
+      return(predict(fit,data.frame(x=x)))
+    } 
+    t = seq(min_,max_,0.005)
+    yy = as.numeric(lapply(t,areas))
+    #trapz(t,yy)
+    x1 = c(min_,max_)
+    y1 = c(predict(fit,data.frame(x=min_)),predict(fit,data.frame(x=max_)))
+    y1 = exp(y1)
+    fit2 = lm(y1~x1)
+    yyy = fit2$coefficients[1]+fit2$coefficients[2]*t
+    min__ = min(y)
+    rang = max_-min_
+    print((1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  ))/(max_ - min_)     )
+    range[2*i+k-2] = max_ - min_
+    ratio[2*i+k-2] = (1-(trapz(t,exp(yy))-0  ) /(trapz(t,yyy)-0  ))  /(max_ - min_)
+  }
+}
+
+```
+
+```{r}
+
+plot( ratio , pch = 19 , col = c(rep(c("blue","navy"),14),rep(c("orange","red"),3)) , ylab = "Ratio" )
+#abline( h = 0.46 , col = "pink" ) 
+#abline( h = 0.5 , col = "gray" ) 
+abline( h = 0.5 , col = "gray" ) 
+abline( h = 0.7 , col = "gray" ) 
+
+plot( range , pch = 19 , col = c(rep(c("blue","navy"),14),rep(c("orange","red"),3)) , ylab = "Range" )
+
+```
+
+
+
+
+
+
+
+
